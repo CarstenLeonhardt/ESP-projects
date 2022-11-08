@@ -12,9 +12,14 @@
 
 //Relay and time definitions
 #define    RELAY_COUNT 16
-#define    STARTUP_TIME 5*1000 //time before starting the show
-#define    ON_TIME 24*60*60*1000 // Time the relay is on
-#define    DELAY_TIME 2*60*1000 //time all relays off, before switching to next relay
+#define    STARTUP_TIME 5000UL //time before starting the show
+#define    ON_TIME 3600000UL // Time the relay is on
+#define    DELAY_TIME 120000UL //time all relays off, before switching to next relay
+uint32_t prevMillis;
+static const uint64_t UPDATE_INTERVAL = 60000;
+unsigned char minuteCounter = 0;
+unsigned char hourCounter = 0;
+unsigned char activeRelay = 1;
 
 //SPI Shiftregister pin initialization
 void HC595Init(void)
@@ -116,6 +121,8 @@ void setup()
 
 void loop() 
 {
+  /*
+}
   delay(STARTUP_TIME);
   // turn on one relay at a time
   unsigned char i;
@@ -125,5 +132,35 @@ void loop()
     delay(ON_TIME);
     RelayOFF(i); 
     delay(DELAY_TIME);
+  }
+*/
+  if (millis() - prevMillis >= UPDATE_INTERVAL)
+  {
+    prevMillis += UPDATE_INTERVAL;
+    minuteCounter ++;
+    if (minuteCounter == 59)
+    {
+      hourCounter++;
+      minuteCounter = 0;
+    }
+    //Start the relay with a 2 minutes delay, to let the charger detect a new battery is connected
+    if ((hourCounter == 0) && (minuteCounter == 2))
+    {
+      RelayON(activeRelay);
+    }
+    if (hourCounter == 24)
+    {
+      hourCounter = 0;
+      RelayOFF(activeRelay);
+      
+      //Switch to next relay
+      activeRelay++;
+      
+      //If were are at the last relay, reset the counter
+      if (activeRelay > RELAY_COUNT)
+      {
+        activeRelay = 1;
+      }
+    }
   }
 }
